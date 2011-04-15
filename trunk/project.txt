@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<QHelpCollectionProject version="1.0">
+    <docFiles>
+        <generate>
+            <file>
+                <input>gl__SDKSHORT__.qhp</input>
+                <output>gl__SDKSHORT__.qch</output>
+            </file>
+        </generate>
+        <register>
+            <file>gl__SDKSHORT__.qch</file>
+        </register>
+    </docFiles>
+</QHelpCollectionProject>
+
