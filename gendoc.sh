@@ -1,15 +1,9 @@
 #!/bin/bash
 
-OPENGL_DOC_URL="http://www.opengl.org/sdk/docs/man/"
-TEMPPATH="/tmp/gl21_temp.$RANDOM"
-ABSPATH="www.opengl.org/sdk/docs/man/xhtml"
-DOWNPATH="${TEMPPATH}/${ABSPATH}"
-QHPFILE="${TEMPPATH}/gl21.qhp"
-QHCPFILE="${TEMPPATH}/gl21.qhcp"
-
 function grabfiles
 {
     ### grab the necessary files
+    echo "Grabbing files (can take a long time) ... "
     if [ -d ${TEMPPATH} ]; then
         rm -Rf ${TEMPPATH}
     fi
@@ -17,6 +11,25 @@ function grabfiles
 
     pushd ${TEMPPATH} 2>/dev/null 1>&2
     wget --recursive --level=100 --no-parent ${OPENGL_DOC_URL} 
+    popd 2>/dev/null 1>&2
+}
+
+function checkredirects
+{
+    pushd ${DOWNPATH} 2>/dev/null 1>&2
+
+    echo "Checking redirects ... "
+    pwd
+    ls *.xml | while read line
+    do
+        cat ${line} | grep "meta http-equiv=\"Refresh\"" 2>/dev/null 1>&2
+        if [ $? -eq 0 ]; then
+            ## we need to fetch a redirect
+            redir=`cat ${line} | grep "meta http-equiv=\"Refresh\"" | awk -F "URL=" '{print $2}' | awk -F '"' '{print $1}'`
+            wget -O ${line} ${ABSPATH}/${redir}
+        fi
+    done
+
     popd 2>/dev/null 1>&2
 }
 
@@ -37,18 +50,7 @@ function writeheader
     echo -n "Creating header ... "
 
     ### write qhp file header
-    cat << EOF > ${QHPFILE}
-<?xml version="1.0" encoding="UTF-8"?>
-<QtHelpProject version="1.0">
-    <namespace>opengl.org.sdk.21</namespace>
-    <virtualFolder>doc</virtualFolder>
-    <customFilter name="OpenGL SDK 2.1 Reference Manual">
-    </customFilter>
-    <filterSection>
-        <filterAttribute>OpenGL SDK 2.1</filterAttribute>
-        <toc>
-            <section title="OpenGL 2.1 Reference manual" ref="#">
-EOF
+    cat header.txt | sed s/__SDKSHORT__/${SDKSHORT}/g | sed s/__SDKLONG__/${SDKLONG}/g > ${QHPFILE}
 
     echo "OK"
 }
@@ -80,8 +82,8 @@ function writefiles
     pushd ${TEMPPATH} 2>/dev/null 1>&2
     find . -name gl\*.html | while read line
     do
-        fname=`echo $line | cut -c 3-`
-        echo "<file>${fname}</file>" >> ${QHPFILE}
+        fname=`echo $line | awk -F '/' '{print $NF}'`
+        echo "<file>${ABSPATH}/${fname}</file>" >> ${QHPFILE}
     done
     popd 2>/dev/null 1>&2
     echo "</files>" >> ${QHPFILE}
@@ -96,22 +98,7 @@ function writefooter
 
 function generateprojectfile
 {
-cat << EOF > ${QHCPFILE}
-<?xml version="1.0" encoding="utf-8" ?>
-<QHelpCollectionProject version="1.0">
-    <docFiles>
-        <generate>
-            <file>
-                <input>gl21.qhp</input>
-                <output>gl21.qch</output>
-            </file>
-        </generate>
-        <register>
-            <file>gl21.qch</file>
-        </register>
-    </docFiles>
-</QHelpCollectionProject>
-EOF
+    cat project.txt | sed s/__SDKSHORT__/${SDKSHORT}/g > ${QHCPFILE}
 }
 
 function buildproject
@@ -121,8 +108,59 @@ function buildproject
 	popd 2>/dev/null 1>&2
 }
 
+### -----------------------------------------------------------------
+### entry
+### -----------------------------------------------------------------
+
+if [ $# -eq 0 ]; then 
+    echo usage: `basename $0` \<glversion\>
+    echo 
+    echo "  <glversion>:"
+    echo "    21 - Generate help file for OpenGL 2.1"
+    echo "    33 - Generate help file for OpenGL 3.3"
+    echo "    41 - Generate help file for OpenGL 4.1"
+    echo
+    exit
+else
+    case $1 in
+        "21")
+            export SDKSHORT=21;
+            export SDKLONG="2.1";
+            export OPENGL_DOC_URL="http://www.opengl.org/sdk/docs/man/"
+            export ABSPATH="www.opengl.org/sdk/docs/man/xhtml"
+            ;;
+        "33")
+            export SDKSHORT=33;
+            export SDKLONG="3.3";
+            export OPENGL_DOC_URL="http://www.opengl.org/sdk/docs/man3/"
+            export ABSPATH="www.opengl.org/sdk/docs/man3/xhtml"
+            ;;
+        "41")
+            export SDKSHORT=41;
+            export SDKLONG="4.1";
+            export OPENGL_DOC_URL="http://www.opengl.org/sdk/docs/man4/"
+            export ABSPATH="www.opengl.org/sdk/docs/man4/xhtml"
+            ;;
+        *)
+            echo Unknown SDK version!;
+            exit;
+            ;;
+    esac
+fi
+
+### setting variables
+TEMPPATH="/tmp/gl${SDKSHORT}_temp.$RANDOM"
+DOWNPATH="${TEMPPATH}/${ABSPATH}"
+QHPFILE="${TEMPPATH}/gl${SDKSHORT}.qhp"
+QHCPFILE="${TEMPPATH}/gl${SDKSHORT}.qhcp"
+
+
+echo "Generating documentation for OpenGL ${SDKLONG}"
+
 grabfiles
+checkredirects
 renamefiles
+
 writeheader
 writesection
 writekeywords

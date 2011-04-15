@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QtHelpProject version="1.0">
+    <namespace>opengl.org.sdk.__SDKSHORT__</namespace>
+    <virtualFolder>doc</virtualFolder>
+    <customFilter name="OpenGL SDK __SDKLONG__ Reference Manual">
+    </customFilter>
+    <filterSection>
+        <filterAttribute>OpenGL SDK __SDKLONG__</filterAttribute>
+        <toc>
+            <section title="OpenGL __SDKLONG__ Reference manual" ref="#">
+
