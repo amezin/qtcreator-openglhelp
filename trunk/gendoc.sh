@@ -33,6 +33,33 @@ function checkredirects
     popd 2>/dev/null 1>&2
 }
 
+function checkmultidoc
+{
+    # checks if a file contains the documentation for more than one function and copy it to a new
+    # name to reflect this
+
+    pushd ${DOWNPATH} 2>/dev/null 1>&2
+
+    if [ -f ${ALIASES} ]; then
+        rm ${ALIASES}
+    fi
+
+    echo "Checking for multifunction documentation ..."
+    ls *.xml | while read line
+    do
+        echo "File:  ${line}"
+        ${MYDIR}/parse.sh ${line} | while read fname
+        do
+            echo "   ----> ${fname}"
+            if [ ! -f ${fname}.xml ]; then
+                echo ${fname} ${line} >> ${ALIASES}
+            fi
+        done
+    done
+
+    popd 2>/dev/null 1>&2
+}
+
 function renamefiles
 {
     echo -n "Renaming files ... "
@@ -58,7 +85,7 @@ function writeheader
 function writesection
 {
     echo -n "Creating sections ... "
-    ./gensection.sh ${DOWNPATH}/index.html ${ABSPATH} >> ${QHPFILE}
+    ./gensection.sh ${DOWNPATH}/index.html ${ABSPATH} ${ALIASES}>> ${QHPFILE}
 
     echo "</section>" >> ${QHPFILE}
     echo "</toc>" >> ${QHPFILE}
@@ -70,7 +97,7 @@ function writekeywords
 {
     echo -n "Creating keywords ... "
 	echo "<keywords>" >> ${QHPFILE}
-    ./genkey.sh ${DOWNPATH}/index.html ${ABSPATH} >> ${QHPFILE}
+    ./genkey.sh ${DOWNPATH}/index.html ${ABSPATH} ${ALIASES} >> ${QHPFILE}
     echo "</keywords>" >> ${QHPFILE}
     echo "OK"
 }
@@ -149,16 +176,19 @@ else
 fi
 
 ### setting variables
+MYDIR=`pwd`
 TEMPPATH="/tmp/gl${SDKSHORT}_temp.$RANDOM"
 DOWNPATH="${TEMPPATH}/${ABSPATH}"
 QHPFILE="${TEMPPATH}/gl${SDKSHORT}.qhp"
 QHCPFILE="${TEMPPATH}/gl${SDKSHORT}.qhcp"
+ALIASES="${TEMPPATH}/aliases.txt"
 
 
 echo "Generating documentation for OpenGL ${SDKLONG}"
 
 grabfiles
 checkredirects
+checkmultidoc
 renamefiles
 
 writeheader
