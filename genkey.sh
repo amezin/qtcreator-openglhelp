@@ -9,3 +9,12 @@ do
    echo "<keyword name=\"${KEY}\" id=\"${KEY}\" ref=\"${PREFIX}/${VAL}\"/>" 
 done
 
+ALIASES=${3}
+cat ${ALIASES} | while read line
+do
+    KEY=`echo ${line} | awk '{print $1}'`
+    VAL=`echo ${line} | awk '{print $2}'`
+
+    echo "<keyword name=\"${KEY}\" id=\"${KEY}\" ref=\"${PREFIX}/${VAL}\"/>"
+done
+
